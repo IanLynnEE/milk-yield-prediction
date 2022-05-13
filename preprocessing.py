@@ -22,8 +22,8 @@ def diff_month(d1, d2):
 def verify_features():
     report = pd.read_csv('data/report.csv', skiprows=1, header=None, 
                 parse_dates=[7, 12, 14])
-    birth  = pd.read_csv('data/birth.csv', skiprows=1, header=None)
-    spec   = pd.read_csv('data/spec.csv', skiprows=1, header=None, parse_dates=[3])
+    birth  = pd.read_csv('data/birth.csv',  skiprows=1, header=None)
+    spec   = pd.read_csv('data/spec.csv',   skiprows=1, header=None)
     spec_died = spec.loc[spec[4].isin(['死亡', '木乃伊', '淘汰'])]
     for i, row in report.iterrows():
         # A. col 14 == col 13 - col 8.
@@ -60,7 +60,7 @@ def verify_features():
 # Cannot get mother's ID (col 6) from birth.csv.
 # As no corresponding calf serial in birth.csv can be found. 
 # Consequently, cannot get father's ID (col 7) from breed.csv.
-def get_features():
+def get_all_features():
     report = pd.read_csv('data/report.csv', skiprows=1,
                 names=['year', 'month', 'ranch', 'serial', 'labours', 
                        'lactation', 'yield', 'last_labour', 'sample', 'age'],
@@ -75,12 +75,17 @@ def get_features():
     # C. Calculate number of days from parturition.
     report['last_labour'] = (report['sample'] - report['last_labour']).dt.days
     report = report.drop('sample', axis=1)
-    # D. TODO Add (col 3 - col 2) from birth.csv.
-    #    TODO col 16~21 might be found from breed.csv
+    # D. TODO Encoding serial.
+    # G. TODO Add (col 3 - col 2) from birth.csv.
+    # H. TODO col 16~21 might be found from breed.csv
     train = report.loc[report['yield'].notnull()]
     test  = report.loc[report['yield'].isnull()]
     logging.info(f'In train: Number of unique:\n{train.nunique()}')
     return train, test
+
+# TODO
+def remove_outlier(train):
+    pass
 
 
 def play_plot(train):
@@ -110,21 +115,8 @@ def play_plot(train):
     return
 
 
-def play_classify(train):
-    X = train.drop('ranch', axis=1).to_numpy()
-    Y = train['ranch'].to_numpy()
-    x, xt, y, yt = train_test_split(X, Y, train_size=0.8)
-    clf = make_pipeline(StandardScaler(), SVC())
-    clf.fit(x, y)
-    yp = clf.predict(xt)
-    ConfusionMatrixDisplay.from_predictions(yt, yp)
-    plt.savefig('images/clf.png')
-    print(accuracy_score(yt, yp))
-    return
-
-
 def play_SVR(train):
-    X = train.drop('yield', axis=1).to_numpy()
+    X = train.drop(['yield', 'serial'], axis=1).to_numpy()
     Y = train['yield'].to_numpy()
     x, xt, y, yt = train_test_split(X, Y, train_size=0.8)
     regr = make_pipeline(StandardScaler(), SVR())
@@ -136,5 +128,5 @@ def play_SVR(train):
 
 if __name__ == '__main__':
     verify_features() 
-    train, test = get_features() 
+    train, test = get_all_features() 
     play_plot(train)
