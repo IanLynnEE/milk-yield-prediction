@@ -42,11 +42,10 @@ def verify_features():
         elif row[8] != oracle.iloc[0][8]:
             logging.warning(f'Conflict: ID = {row[0]:<6d}: col 9')
     # E. A cow should have exactly one birthday.
-    serial = report.drop_duplicates(subset=4)[4].tolist()
-    for i in serial:
-        oracle = report.loc[report[4] == i].drop_duplicates(subset=7)
-        if oracle.shape[0] != 1:
-            logging.warning(f'Multi-birthday: Serial = {i}')
+    multi_birthday = report.drop_duplicates(subset=[4,7]).duplicated(subset=4)
+    for serial, flag in multi_birthday.iteritems():
+        if flag == True:
+            logging.warning(f'Multi-birthday: Serial = {serial}')
     # F. The died cows' serial numbers are re-used.
     for i, row in spec_died.iterrows():
         oracle = report.loc[report[4] == row[0]]
@@ -127,6 +126,15 @@ def play_SVR(train):
 
 
 if __name__ == '__main__':
-    verify_features() 
     train, test = get_all_features() 
-    play_plot(train)
+
+    num_same_cow_in_train = {}
+    for i in test.drop_duplicates(subset='serial')['serial'].tolist():
+        num_same_cow_in_train[i] = train.loc[train['serial']==i].shape[0]
+    print('Number of old cows:',
+            sum(value != 0 for value in num_same_cow_in_train.values()),
+            '\nNumber of new cows:',
+            sum(value == 0 for value in num_same_cow_in_train.values()),
+            '(No history data)'
+    )
+    report = pd.read_csv('data/report.csv', skiprows=1, header=None) 
