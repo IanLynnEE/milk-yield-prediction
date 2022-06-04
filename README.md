@@ -45,7 +45,7 @@ Based on the result of `verify_data()`, we adopt the following features:
 | 5                    | mother                 | encoded mother's serial number | int32   |
 | 9                    | delivery               | #deliveries                    | int64   |
 | 10                   | lactation              | #days of lactation             | int64   |
-| 11                   | yield                  | milk yield                     | float64 |
+| 11                   | volume                 | milk yield                     | float64 |
 | 14                   | age                    | age in month                   | int64   |
 |                      |                        |                                |         |
 
