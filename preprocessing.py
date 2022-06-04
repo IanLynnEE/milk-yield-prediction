@@ -25,7 +25,8 @@ def get_all_features() -> tuple[pd.DataFrame, pd.DataFrame]:
     # A. From the result of verifing data.
     report.drop(report.index[report['ID'] == 6960], inplace=True)
     report.drop(report.index[report['ID'] == 16714], inplace=True)
-    # B. Encode father, mother, ranch.
+    report.drop(report.index[report['age'] < 21], inplace=True)
+    # B. Simple encoding
     report.father = LabelEncoder().fit_transform(report.father)
     report.mother = LabelEncoder().fit_transform(report.mother)
     report.ranch = LabelEncoder().fit_transform(report.ranch)
