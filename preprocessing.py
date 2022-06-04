@@ -17,7 +17,7 @@ def verify_data():
     """
     1. The age of a cow == (sampling date - birthday).
     2. sampling date <= recording date.
-    3. #days of lactation == sampling date - last labour date
+    3. #days of lactation == sampling date - last delivery date
     4. The birthday should agree with the one in birth.csv.
     5. A cow should have exactly one birthday.
     6. The serial number should not appear in report.csv after the cow died.
@@ -56,19 +56,27 @@ def verify_data():
 
 def get_all_features():
     report = pd.read_csv('data/report.csv', skiprows=1,
-                names=['ID', 'year', 'month', 'ranch', 'serial', 
-                       'delivery', 'lactation', 'yield', 'age'],
-                usecols=[0, 1, 2, 3, 4, 8, 9, 10, 13])
+                names=[
+                    'ID', 'year', 'month', 'ranch',
+                    'serial', 'father','mother', 'birthday',
+                    'delivery', 'lactation', 'yield', 'age'],
+                usecols=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 13],
+                dtype={'father': str, 'mother': str},
+                parse_dates=['birthday'])
     # A. From the result of verifing data.
     report.drop(report.index[report['ID']==6960], inplace=True)
-    report.drop(report.index[report['ID']==16714], inplace=True)
-    # B. Use int64 if possible.
-    report.ranch = LabelEncoder().fit_transform(report.ranch).astype('int64')
-    report.delivery = report.delivery.astype('int64')
+    report.drop(report.index[report['ID']==16714], inplace=True)    
+    # B. Encode father, mother, ranch.
+    report.father = LabelEncoder().fit_transform(report.father)
+    report.mother = LabelEncoder().fit_transform(report.mother)
+    report.ranch = LabelEncoder().fit_transform(report.ranch)
+    # C. Encode serial based on birthday.
+    unique_serial = report.sort_values(by='birthday').serial.unique()
+    new_serial_map = { old: i for i, old in enumerate(unique_serial)}
+    report.serial = report.serial.map(new_serial_map)
+    # Don't need birthday now.
+    report.drop('birthday', axis=1, inplace=True)
     report.lactation = report.lactation.astype('int64')
-    # D. TODO Encoding serial.
-    # G. TODO Add (col 3 - col 2) from birth.csv.
-    # H. TODO col 16~21 might be found from breed.csv
     train = report.loc[report['yield'].notnull()]
     test  = report.loc[report['yield'].isnull()]
     logging.info(f'In train: Number of unique:\n{train.nunique()}')
