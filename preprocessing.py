@@ -41,9 +41,26 @@ def get_all_features() -> tuple[pd.DataFrame, pd.DataFrame]:
     logging.info(f'In train: Number of unique:\n{train.nunique()}')
     return train, test
 
-# TODO
-def remove_outlier(train):
-    pass
+
+def plot_zero_mean(train: pd.DataFrame):
+    # Calculate the average volume of each cow.
+    shifted = np.empty(1)
+    spread = np.empty(1)
+    for i in train['serial'].unique():
+        same_cow = train.loc[train.serial == i]
+        mean = same_cow['volume'].mean()
+        std = same_cow['volume'].std()
+        # Ignore the cows that have only one data in training set.
+        if same_cow.shape[0] != 0:
+            shifted = np.hstack((shifted, same_cow['volume'] - mean))
+            spread = np.hstack((spread, std))
+    sns.histplot(data=shifted)
+    plt.xlabel('Subtract (Mean of Each Cow) from (Milk Yield)')
+    plt.show()
+    sns.histplot(data=spread)
+    plt.xlabel('STD of Each Cow')
+    plt.show()
+    return
 
 
 if __name__ == '__main__':
