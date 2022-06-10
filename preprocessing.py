@@ -11,8 +11,14 @@ from sklearn.svm import SVR
 
 def main():
     report = get_all_features()
+    train, valid, test = split_data(report, valid_year=2018, valid_month=10)
+
+    yv = valid['volume'].to_numpy()
+    valid['volume'] = pd.NA
+    report = pd.concat([train, valid])
     add_mean_std(report)
-    train, valid, test = split_data(report)
+
+    train, _, valid = split_data(report, valid_year=2018, valid_month=10)
 
     drop_list = ['serial', 'father', 'mother', 'year', 'month']
     train.drop(drop_list, axis=1, inplace=True)
@@ -21,12 +27,12 @@ def main():
     x = train.drop('volume', axis=1).to_numpy()
     xv = valid.drop('volume', axis=1).to_numpy()
     y = train['volume'].to_numpy()
-    yv = valid['volume'].to_numpy()
 
     regr = SVR()
     regr.fit(x, y)
     yp = regr.predict(xv)
     print('RMSE =', RMSE(yv, yp))
+    print('RMSE by mean =', RMSE(yv, valid['mean']))
     plt.scatter(yp, yv, label='SVR')
     plt.scatter(valid['mean'], yv, label='Mean')
     plt.axis([0, 60, 0, 60])
@@ -69,16 +75,15 @@ def get_all_features() -> pd.DataFrame:
     return report
 
 
-def split_data(df: pd.DataFrame) -> tuple:
+def split_data(df: pd.DataFrame, valid_year: int, valid_month: int) -> tuple:
     # Get training and test set.
     train = pd.DataFrame.copy(df.loc[df['volume'].notnull()])
     test  = pd.DataFrame.copy(df.loc[df['volume'].isnull()])
     # Remove 64 data with volume == 0.
     train.drop(train.index[train.volume == 0], inplace=True)
     # A realistic validation set based on number of new cows
-    logging.warning(' Use data after 2018/09/01 as validation set.')
-    valid = train.query('year == 2018 & month > 9').copy()
-    train.query('year < 2018 | month <= 9', inplace=True)
+    valid = train.query(f'year == {valid_year} & month > {valid_month}').copy()
+    train.query(f'year < {valid_year} | month <= {valid_month}', inplace=True)
     logging.info(f' Number of unique in train:\n{train.nunique()}')
     return train, valid, test
 
@@ -88,15 +93,19 @@ def add_mean_std(df: pd.DataFrame):
     Add mean and std of each cow at each deliveray.
     Kind of like TargetEncoder, but it uses two columns to encode.
     Moreover, it gives std as well.
+    For known cows with new delivery, the last delivery data will be used.
     """
     for i in df['serial'].unique():
-        for j in df.loc[df.serial == i, 'delivery'].unique():
+        for j in sorted(df.loc[df.serial == i, 'delivery'].unique()):
             index = df.index[(df.serial == i) & (df.delivery == j)]
-            df.loc[index, 'mean'] = df.loc[index, 'volume'].mean()
-            df.loc[index, 'std'] = df.loc[index, 'volume'].std()
-    # TODO What should we fill for new cows and cows with new delivery?
-    df['mean'].fillna(value=0, inplace=True)
-    df['std'].fillna(value=0, inplace=True)
+            ref = df.loc[index]
+            if ref['volume'].isnull().all():
+                ref = df.query(f'serial == {i} & delivery == {j-1}')
+            df.loc[index, 'mean'] = ref['volume'].mean()
+            df.loc[index, 'std'] = ref['volume'].std()
+    # TODO What should we fill for new cows?
+    df['mean'].fillna(value=df['volume'].mean(), inplace=True)
+    df['std'].fillna(value=df['volume'].std(), inplace=True)
     return
 
 
