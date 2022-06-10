@@ -78,30 +78,34 @@ def get_all_features() -> tuple[pd.DataFrame, pd.DataFrame]:
     return train, test
 
 
-def add_mean_std(train: pd.DataFrame, test: pd.DataFrame):
-    """Add the average volume of each cow. #TODO each deliveray
-
-    Args:
-        train (pd.DataFrame): No 0 or NaN in column "volume". 
-        test (pd.DataFrame): All NaN or 0 in column "volume".
+def add_mean_std(train: pd.DataFrame, test: pd.DataFrame) -> pd.DataFrame:
+    """Add the average volume of each cow at each deliveray.
     """
     for i in train['serial'].unique():
-        same_cow = train.loc[train.serial == i]
-        train.loc[train.serial==i, 'mean'] = same_cow['volume'].mean()
-        train.loc[train.serial==i, 'std'] = same_cow['volume'].std()
+        for j in train.loc[train.serial == i, 'delivery'].unique():
+            index = train.index[(train.serial == i) & (train.delivery == j)]
+            train.loc[index, 'mean'] = train.loc[index, 'volume'].mean()
+            train.loc[index, 'std'] = train.loc[index, 'volume'].std()
     train['std'].fillna(value=0, inplace=True)
-    # TODO What should be the "mean" if there's only one reference?
+    # For cows in the test set, we try to find the same cow from training set.
+    # If the same cow can be found, yet it got new delivery, 
+    # we should fill the mean/std from last delivery from itself.
     for i in test['serial'].unique():
-        same_cow = train.loc[train.serial == i]
-        if same_cow.shape[0] > 0:
-            test.loc[test.serial==i, 'mean'] = same_cow['volume'].mean()
-            test.loc[test.serial==i, 'std'] = same_cow['volume'].std()
-    # Number of cows that have no reference.
-    # print(test.drop_duplicates(subset='serial')['mean'].isnull().sum())
-    # TODO What should be the "mean" if there's no reference?
+        for j in sorted(test.loc[test.serial == i, 'delivery'].unique()):
+            same_delivery = train.query(f'serial == {i} & delivery == {j}')
+            if same_delivery.shape[0] == 0:
+                same_delivery = train.query(f'serial=={i} & delivery=={j-1}')
+            index = test.index[(test.serial == i) & (test.delivery == j)]
+            test.loc[index, 'mean'] = same_delivery['volume'].mean()
+            test.loc[index, 'std'] = same_delivery['volume'].std()
+    logging.warning(
+        " Number of new cows in test: " +
+        f"{test.drop_duplicates(subset='serial')['mean'].isnull().sum()}"
+    )
+    valid_old_cows = test.dropna().copy()
     test['mean'].fillna(value=train['volume'].mean(), inplace=True)
     test['std'].fillna(value=0, inplace=True)
-    return
+    return valid_old_cows
 
 
 if __name__ == '__main__':
