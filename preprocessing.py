@@ -8,37 +8,41 @@ import seaborn as sns
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 
 from sklearn.svm import SVR
+from sklearn.ensemble import RandomForestRegressor
 
 def main():
     report = get_all_features()
     # Remove 64 training data with volume == 0.
     report.drop(report.index[report.volume == 0], inplace=True)
+    add_mean_std(report)
+    report['diff'] = report['volume'] - report['mean']
     # Remove 'volume' for the validation set.
-    train, valid, test = split_data(report, valid_year=2018, valid_month=10)
-    yv = valid['volume'].to_numpy()
-    valid['volume'] = pd.NA
+    train, valid, test = split_data(report, valid_year=2018, valid_month=0)
+    yv = valid['diff'].to_numpy()
+    valid['diff'] = pd.NA
     report = pd.concat([train, valid])
 
     report = pd.get_dummies(report, columns=['year', 'month'])
+    report[['lactation', 'age']] = StandardScaler().fit_transform(report[['lactation', 'age']])
     add_mean_std(report)
 
-    train, valid = split_data(report)
+    train, valid = split_data(report, col='diff')
 
-    drop_list = ['serial']
+    drop_list = ['serial', 'volume']
     train.drop(drop_list, axis=1, inplace=True)
     valid.drop(drop_list, axis=1, inplace=True)
 
-    x = train.drop('volume', axis=1)
-    xv = valid.drop('volume', axis=1)
-    y = train['volume'].to_numpy()
+    x = train.drop('diff', axis=1)
+    xv = valid.drop('diff', axis=1)
+    y = train['diff'].to_numpy()
 
-    regr = SVR()
+    regr = RandomForestRegressor()
     regr.fit(x, y)
     yp = regr.predict(xv)
     print('RMSE =', RMSE(yv, yp))
-    print('RMSE by mean =', RMSE(yv, valid['mean']))
+    print(regr.feature_names_in_)
+    print(regr.feature_importances_)
     plt.scatter(yp, yv, label='SVR')
-    plt.scatter(valid['mean'], yv, label='Mean')
     plt.axis([0, 60, 0, 60])
     plt.xlabel('Predict')
     plt.ylabel('Truth')
@@ -56,8 +60,8 @@ def get_all_features() -> pd.DataFrame:
                 names=[
                     'ID', 'year', 'month', 'ranch',
                     'serial', 'father','mother', 'birthday',
-                    'delivery', 'lactation', 'volume', 'age'],
-                usecols=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 13],
+                    'delivery', 'lactation', 'volume', 'age', 'breeding'],
+                usecols=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 13, 17],
                 dtype={'father': str, 'mother': str},
                 parse_dates=['birthday'])
     # Drop some data based on the result of verifing data.
@@ -65,10 +69,10 @@ def get_all_features() -> pd.DataFrame:
     df.drop(df.index[df.ID == 16714], inplace=True)
     df.drop(df.index[df.age < 21], inplace=True)
     # Frequency encoding
-    df.father.fillna(value=-1, inplace=True)
     df.father = df.father.map(df.father.value_counts().to_dict())
-    df.mother.fillna(value=-1, inplace=True)
     df.mother = df.mother.map(df.mother.value_counts().to_dict())
+    df.father.fillna(value=df.father.mean(), inplace=True)
+    df.mother.fillna(value=df.mother.mean(), inplace=True)
     df['serial_freq'] = df.serial.map(df.serial.value_counts().to_dict())
     # One hot encoding
     df = pd.get_dummies(df, columns=['ranch'])
@@ -84,10 +88,10 @@ def get_all_features() -> pd.DataFrame:
     return df
 
 
-def split_data(df: pd.DataFrame, valid_year=0, valid_month=0) -> tuple:
+def split_data(df: pd.DataFrame, col='volume', valid_year=0, valid_month=0):
     # Get training and test set.
-    train = pd.DataFrame.copy(df.loc[df['volume'].notnull()])
-    test  = pd.DataFrame.copy(df.loc[df['volume'].isnull()])
+    train = pd.DataFrame.copy(df.loc[df[col].notnull()])
+    test  = pd.DataFrame.copy(df.loc[df[col].isnull()])
     if valid_year == 0:
         return train, test
     # A realistic validation set based on number of new cows
