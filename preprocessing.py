@@ -48,7 +48,7 @@ def RMSE(yt, yp):
     return np.sum((yt - yp) ** 2) / yp.shape[0]
 
 
-def get_all_features() -> tuple[pd.DataFrame, pd.DataFrame]:
+def get_all_features() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     report = pd.read_csv('data/report.csv', skiprows=1,
                 names=[
                     'ID', 'year', 'month', 'ranch',
@@ -69,13 +69,21 @@ def get_all_features() -> tuple[pd.DataFrame, pd.DataFrame]:
     unique_serial = report.sort_values(by='birthday').serial.unique()
     new_serial_map = {old: i for i, old in enumerate(unique_serial)}
     report.serial = report.serial.map(new_serial_map)
-    # Don't need birthday now.
-    report.drop('birthday', axis=1, inplace=True)
+    # Don't need birthday and ID now.
+    report.drop(columns=['ID', 'birthday'], inplace=True)
+    # After dropping data with NaN, use integer.
     report.lactation = report.lactation.astype('int64')
-    train = report.loc[report['volume'].notnull()]
-    test  = report.loc[report['volume'].isnull()]
-    logging.info(f'In train: Number of unique:\n{train.nunique()}')
-    return train, test
+    # Get training and test set.
+    train = pd.DataFrame.copy(report.loc[report['volume'].notnull()])
+    test  = pd.DataFrame.copy(report.loc[report['volume'].isnull()])
+    # Remove 64 data with volume == 0.
+    train.drop(train.index[train.volume == 0], inplace=True)
+    # A realistic validation set based on number of new cows
+    logging.warning(' Use data after 2018/09/01 as validation set.')
+    valid = train.query('year == 2018 & month > 9').copy()
+    train.query('year < 2018 | month <= 9', inplace=True)
+    logging.info(f' Number of unique in train:\n{train.nunique()}')
+    return train, valid, test
 
 
 def add_mean_std(train: pd.DataFrame, test: pd.DataFrame) -> pd.DataFrame:
