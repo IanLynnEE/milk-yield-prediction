@@ -72,10 +72,10 @@ def label_encoding(df: pd.DataFrame):
     df.father.fillna(value='unknown', inplace=True)
     df.mother.fillna(value='unknown', inplace=True)
     # Label encoding on father and mother
-    df.father = LabelEncoder().fit_transform(df.father)
-    df.mother = LabelEncoder().fit_transform(df.mother)
+    df.father = LabelEncoder().fit_transform(df.father) + 1
+    df.mother = LabelEncoder().fit_transform(df.mother) + 1
     # Label encoding on ranch
-    df.ranch = LabelEncoder().fit_transform(df.ranch)
+    df.ranch = LabelEncoder().fit_transform(df.ranch) + 1
     # Ascending serial based on birthday.
     unique_serial = df.sort_values(by='birthday').serial.unique()
     serial_map = {old: i for i, old in enumerate(unique_serial)}
