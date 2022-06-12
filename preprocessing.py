@@ -12,10 +12,11 @@ def main():
     label_encoding(report)
     frequency_encoding(report)
     add_time_different(report)
-    add_mean_std(report)
+    # add_mean_std(report)
     # one hot encoding
-    report = pd.get_dummies(report, columns=['ranch', 'year', 'month'])
+    # report = pd.get_dummies(report, columns=['ranch', 'year', 'month'])
     # Split data
+    print(report.info())
     train = report.loc[report['volume'].notnull()]
     test  = report.loc[report['volume'].isnull()]
     train.to_csv('data/train.csv')
@@ -67,13 +68,18 @@ def drop_data(df: pd.DataFrame):
 
 def label_encoding(df: pd.DataFrame):
     logging.info(' Label encoding father, mother, ranch.')
+    logging.info(' Label encoding firstSemen, lastSemen.')
     logging.info(' Label encoding serial based on brithday.')
     # Mark unknow
     df.father.fillna(value='unknown', inplace=True)
     df.mother.fillna(value='unknown', inplace=True)
-    # Label encoding on father and mother
+    df.firstSemen.fillna(value='unknown', inplace=True)
+    df.lastSemen.fillna(value='unknown', inplace=True)
+    # Label encoding on father, mother, firstSemen, lastSemen
     df.father = LabelEncoder().fit_transform(df.father) + 1
     df.mother = LabelEncoder().fit_transform(df.mother) + 1
+    df.firstSemen = LabelEncoder().fit_transform(df.firstSemen) + 1
+    df.lastSemen = LabelEncoder().fit_transform(df.lastSemen) + 1
     # Label encoding on ranch
     df.ranch = LabelEncoder().fit_transform(df.ranch) + 1
     # Ascending serial based on birthday.
@@ -87,7 +93,7 @@ def frequency_encoding(df: pd.DataFrame):
     logging.info(' Frequency encoding father, mother.')
     df.father = df.father.map(df.father.value_counts().to_dict())
     df.mother = df.mother.map(df.mother.value_counts().to_dict())
-    # df['serial_freq'] = df.serial.map(df.serial.value_counts().to_dict())
+    df['serial_freq'] = df.serial.map(df.serial.value_counts().to_dict())
     return
 
 
