@@ -12,6 +12,7 @@ def main():
     label_encoding(report)
     frequency_encoding(report)
     add_time_different(report)
+    add_delivery_season(report)
     # add_mean_std(report)
     # one hot encoding
     # report = pd.get_dummies(report, columns=['ranch', 'year', 'month'])
@@ -95,6 +96,11 @@ def frequency_encoding(df: pd.DataFrame):
     df.mother = df.mother.map(df.mother.value_counts().to_dict())
     df['serial_freq'] = df.serial.map(df.serial.value_counts().to_dict())
     return
+
+
+def add_delivery_season(df: pd.DataFrame):
+    logging.info(' Adding more features based on datetime features.')
+    df['deliverySeason'] = df.deliveryDate.dt.month % 12 // 3 + 1
 
 
 def add_time_different(df: pd.DataFrame):
