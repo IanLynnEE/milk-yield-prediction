@@ -1,5 +1,4 @@
 import logging
-# logging.basicConfig(level=logging.INFO)
 
 import pandas as pd
 import numpy as np
@@ -16,8 +15,6 @@ def main():
     # add_mean_std(report)
     # one hot encoding
     # report = pd.get_dummies(report, columns=['ranch', 'year', 'month'])
-    # Split data
-    print(report.info())
     train = report.loc[report['volume'].notnull()]
     test  = report.loc[report['volume'].isnull()]
     train.to_csv('data/train.csv')
@@ -99,7 +96,7 @@ def frequency_encoding(df: pd.DataFrame):
 
 
 def add_delivery_season(df: pd.DataFrame):
-    logging.info(' Adding more features based on datetime features.')
+    logging.info(' Add deliverySeason based on deliveryDate.')
     df['deliverySeason'] = df.deliveryDate.dt.month % 12 // 3 + 1
 
 
@@ -134,8 +131,8 @@ def add_mean_std(df: pd.DataFrame):
             df.loc[index, 'mean'] = ref['volume'].mean()
             df.loc[index, 'std'] = ref['volume'].std()
     # TODO What should we fill for new cows?
-    df['mean'].fillna(value=df['volume'].mean(), inplace=True)
-    df['std'].fillna(value=df['volume'].std(), inplace=True)
+    # df['mean'].fillna(value=df['volume'].mean(), inplace=True)
+    # df['std'].fillna(value=df['volume'].std(), inplace=True)
     return
 
 
