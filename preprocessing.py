@@ -1,5 +1,4 @@
 import logging
-# logging.basicConfig(level=logging.INFO)
 
 import pandas as pd
 import numpy as np
@@ -16,8 +15,6 @@ def main():
     # add_mean_std(report)
     # one hot encoding
     # report = pd.get_dummies(report, columns=['ranch', 'year', 'month'])
-    # Split data
-    print(report.info())
     train = report.loc[report['volume'].notnull()]
     test  = report.loc[report['volume'].isnull()]
     train.to_csv('data/train.csv')
@@ -92,14 +89,18 @@ def label_encoding(df: pd.DataFrame):
 
 def frequency_encoding(df: pd.DataFrame):
     logging.info(' Frequency encoding father, mother.')
+    logging.info(' Frequency encoding serial.')
+    logging.info(' Frequency encoding firstSemen, lastSemen.')
     df.father = df.father.map(df.father.value_counts().to_dict())
     df.mother = df.mother.map(df.mother.value_counts().to_dict())
-    df['serial_freq'] = df.serial.map(df.serial.value_counts().to_dict())
+    df.serial = df.serial.map(df.serial.value_counts().to_dict())
+    df.firstSemen = df.firstSemen.map(df.firstSemen.value_counts().to_dict())
+    df.lastSemen = df.lastSemen.map(df.lastSemen.value_counts().to_dict())
     return
 
 
 def add_delivery_season(df: pd.DataFrame):
-    logging.info(' Adding more features based on datetime features.')
+    logging.info(' Add deliverySeason based on deliveryDate.')
     df['deliverySeason'] = df.deliveryDate.dt.month % 12 // 3 + 1
 
 
@@ -133,9 +134,8 @@ def add_mean_std(df: pd.DataFrame):
                 ref = df.query(f'serial == {i} & delivery == {j-1}')
             df.loc[index, 'mean'] = ref['volume'].mean()
             df.loc[index, 'std'] = ref['volume'].std()
-    # TODO What should we fill for new cows?
-    df['mean'].fillna(value=df['volume'].mean(), inplace=True)
-    df['std'].fillna(value=df['volume'].std(), inplace=True)
+    # df['mean'].fillna(value=df['volume'].mean(), inplace=True)
+    # df['std'].fillna(value=df['volume'].std(), inplace=True)
     return
 
 
