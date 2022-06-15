@@ -1,7 +1,47 @@
+# Topic
 
-## Different features
+## Abstract
 
-### ANN
+
+## Introduction
+
+
+
+## Methods
+
+### Data Modeling
+
+<!-- Def features' name and meaning here or at result? -->
+
+
+### Select features
+
+Def:
+- Average RMSE: Average RMSE on 10 random validation sets.
+- Special RMSE: Use data after 2018/06/30 as validation set.
+- Real RMSE: Set `max_iter=50` instead of 300.
+<!-- Define how does "add time interval" work here?-->
+
+### Select models' parameters
+
+
+
+
+## Result
+
+### Data Modeling
+
+#### Dropping Data
+
+
+#### Encoding
+
+
+
+
+### Select features
+
+#### ANN
 
 model:
 ```python
@@ -15,60 +55,72 @@ MLPRegressor(
 
 features scaler: `MinMaxScaler`
 
-#### Original features
-
-| feature   | preprocess        |
+<!-- Should this table be defined ealier? -->
+| feature   | preprocessing     |
 |-----------|-------------------|
 | year      |                   |
 | month     |                   |
-| ranch     | lable encode      |
+| ranch     | lable encoded     |
 | serial    | based on birthday |
-| father    | frequency encode  |
-| mother    | frequency encode  |
+| father    | frequency encoded |
+| mother    | frequency encoded |
 | delivery  |                   |
 | lactation |                   |
 | age       |                   |
 | breeding  |                   |
 
-Average RMSE on random validation sets: 5.879
-RMSE on a special validation set: 6.138
 
-#### Use frequency encoded serial
 
-Average RMSE on random validation sets: 5.666
-RMSE on a special validation set: 5.913
+|                          | Test 1 | Test 2 | Test 3 | Test 4 | Test 5 | Test 6 |
+|--------------------------|--------|--------|--------|--------|--------|--------|
+| Ascending serial         | O      | X      | X      | X      | X      | X      |
+| Frequency encoded serial | X      | O      | O      | O      | O      | O      |
+| One-hot encoded ranch    | X      | X      | O      | O      | O      | O      |
+| Add breeding             | O      | O      | O      | X      | O      | O      |
+| Add delivery season      | X      | X      | X      | X      | O      | O      |
+| Add time interval        | X      | X      | X      | X      | X      | O      |
+|                          |        |        |        |        |        |        |
+| Average RMSE             | 5.879  | 5.666  | 5.650  | 5.774  | 5.632  |        |
+| Special RMSE             | 6.138  | 5.913  | 5.869  | 5.853  | 6.187  |        |
+| Real RMSE                |        |        |        |        | 6.274  | 6.257  |
 
-Looks good, we will use frequency encoded serial for following test.
 
-#### Use one-hot encoded ranch as well
 
-Average RMSE on random validation sets: 5.650
-RMSE on a special validation set: 5.869
+#### Random Forest Regressor
 
-Looks good, we will use one-hot encoded ranch for following test.
+model:
+```python
+RandomForestRegressor(
+    n_estimators=1000,
+    criterion='squared_error',
+    random_state=1,
+    n_jobs=-1
+)
+```
 
-#### Without breeding (col 18):
+features scaler: `MinMaxScaler`
 
-Average RMSE on random validation sets: 5.774
-RMSE on a special validation set: 5.853
+| feature   | preprocessing     |
+|-----------|-------------------|
+| year      |                   |
+| month     |                   |
+| ranch     | one-hot encoded   |
+| serial    | frequency encoded |
+| father    | frequency encoded |
+| mother    | frequency encoded |
+| delivery  |                   |
+| lactation |                   |
+| age       |                   |
 
-#### Add deliverySeason
 
-Average RMSE on random validation sets: 5.632
-RMSE on a special validation set: 6.187
-Real RMSE on the test set: 6.2737843 with max_iters=50
 
-Looks good, we will Add deliverySeason for following test.
+|                     | Test 1 | Test 2 | Test 3 | Test 4 |
+|---------------------|--------|--------|--------|--------|
+| Add breeding        | X      | O      | O      | O      |
+| Add delivery season | X      | X      | O      | O      |
+| Add time interval   | X      | X      | X      | O      |
+|                     |        |        |        |        |
+| Average RMSE        | 5.505  | 5.392  | 5.346  |        |
+| Special RMSE        | 5.764  | 5.709  | 5.689  |        |
+| Real RMSE           | 6.303  | 6.260  | 6.242  | ??     |
 
-We found out max_iters is too high only now. We will still use max_iters = 300 for next test, for better comparison.
-
-#### Add some time intervals
-
-Average RMSE on random validation sets: 5.373
-RMSE on a special validation set: 6.037
-
-However, some test data cannot compute time intervals.
-
-We merge the result from `Add deliverySeason` with this, and get: 
-
-Real RMSE on the test set: 6.2570669 with max_iters=50
