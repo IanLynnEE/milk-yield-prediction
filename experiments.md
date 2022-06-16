@@ -1,4 +1,4 @@
-# Topic
+# Milk Yield Prediction
 
 ## Abstract
 
@@ -35,6 +35,10 @@ The following things were checked:
 ### Data Modeling
 
 <!-- Define how to calculate mean and std here. -->
+
+<!-- Define how and why the time intervals is used. -->
+
+<!-- Define the scaler. -->
 
 <!-- explain options provided in the framework for later jobs -->
 
@@ -89,7 +93,15 @@ After a quick check, we believed that the serial number would be reused on some 
 
 In the process, we also found that the data in columns 16 to 21 in the "report" doesn't match the official meaning. In column 18, the official description is "number of breeding", yet we found lots of records have 0 in this column. In column 16, the official description is "last breeding date", yet it might be later than the recording date of the record. However, the time intervals calculated by these features proved to be valuable later. As a result, we can only suggest that the descriptions are misleading.
 
+<!-- 
+There are 33252 training data with 1821 cows, and 4263 test data with 846 cows.
+
+For the 846 cows in the test dataset, 679 of them can be found in training data, while 170 of them cannot.
+-->
+
 ### Data Modeling
+
+We only use data in report.csv, as we cannot get the mother's ID (col 6) from birth.csv (no corresponding calf serial can be found). Consequently, we cannot get the father's ID (col 7) from breed.csv.
 
 <!-- Define features' name and meaning here -->
 
@@ -135,31 +147,9 @@ Moreover, for the special (fixed) validation set, the result varied with time. T
 
 ##### Random Forest Regressor
 
-The Random Forest Regressor takes much longer to compute, 
+The Random Forest Regressor takes much longer to compute, but it will give us the same result as long as the random state is fixed. As a result, the special validation set was used as we found out it can better descript the real test set. 
 
-We try to find the usefulness of features first and do experiments on different encoding later.
-
-We will only use the special validation set in the second part. Random Forest Regressor will give us the same result as long as `random_state` is fixed. We found out that the special validation set can better descript the real RMSE. 
-
-上面那句好難寫。反正就是，因為固定 random state，我們能夠確定，特別挑的那組 valid set 更貼近上傳後的 RMSE。那我們就不用跑 random 的 valid 了，這樣可以省下很多時間。
-
-
-
-features scaler: `MinMaxScaler`
-
-| feature   | preprocessing     |
-|-----------|-------------------|
-| year      |                   |
-| month     |                   |
-| ranch     | one-hot encoded   |
-| serial    | frequency encoded |
-| father    | frequency encoded |
-| mother    | frequency encoded |
-| delivery  |                   |
-| lactation |                   |
-| age       |                   |
-
-
+We tried to find the usefulness of features first this time. The ranch was set to use label encoding and the frequency encoding was used for serial.
 
 |                     | Test 1 | Test 2 | Test 3 | Test 4 |
 |---------------------|--------|--------|--------|--------|
@@ -171,9 +161,9 @@ features scaler: `MinMaxScaler`
 | Special RMSE        | 5.764  | 5.709  | 5.689  |        |
 | Real RMSE           | 6.303  | 6.260  | 6.242  | ??     |
 
-看起來 breeding 跟 deliveery season 都有點用處。
+We found that the delivery season and data in columns 16 to 21 are meaningful to milk yield.
 
-<!-- X doesn't mean dropping this feature, it means going back to the label encoded. -->
+We then try different encoding methods for serial and ranch. When frequency encoding was not used for serial, we use the birthday to rank the serial.
 
 |                          | Test 1 | Test 2 | Test 3 |
 |--------------------------|--------|--------|--------|
@@ -184,17 +174,11 @@ features scaler: `MinMaxScaler`
 |                          |        |        |        |
 | Special RMSE             | 5.689  | 5.689  | 5.980  |
 
+We found that the frequency encoded serial is necessary. We also suspected that the cows are not getting better from generation to generation, which is more alarming.
 
-### SVR
+##### SVR
 
-    # regr = SVR(
-    #     epsilon=0.1,
-    #     C=1,
-    #     cache_size=8000
-    # )
-
-
-SVR 也是一樣每次都一樣的結果（固定 valid 時），不固定的 std 大概 0.06~0.08
+We tried to verify the discovery with SVR.
 
 |                          | Test 1 | Test 2 | Test 3 | Test 4 | Test 5 | Test 6 | Test 7 | Test 8 | Test 9 |
 |--------------------------|--------|--------|--------|--------|--------|--------|--------|--------|--------|
@@ -209,19 +193,22 @@ SVR 也是一樣每次都一樣的結果（固定 valid 時），不固定的 st
 | Real RMSE                |        |        |        |        |        | 6.524  |        |        | 6.389  |
 
 
-Use test 6's result:
-<!-- Picture here -->
+The result of adding more features was less obvious but still agreed with the discovery above. As for the one-hot encoding, we suspected that SVR does not prefer too many dimensions, and the hyperplane might be complex enough.
 
-e = 0.4, c = 0.9 doesn't do well on random sets.
 
-0.4, 0.9, 6.275063, 27409
-0.4, 0.9, 6.286322, 27346
-0.4, 0.9, 6.264244, 27361
-0.4, 0.9, 6.327693, 27360
-0.4, 0.9, 6.326100, 27332
-0.4, 0.9, 6.253120, 27362
-0.4, 0.9, 6.122793, 27346
-0.4, 0.9, 6.221437, 27334
-0.4, 0.9, 6.249654, 27381
-0.4, 0.9, 6.190822, 27376
+#### Select Parameters
 
+##### SVR
+
+With the correct features and encoding, we first tried out different kernels. The results were far from the default kernel (RBF). The default gamma also worked better. Then, we tried different epsilon and cost to control the number of support vectors and the hardness of the margin. After a quick check, we set the experiment range of epsilon and cost to be 0.1 ~ 1.9.
+
+<!-- image -->
+
+The result suggested that it might not be worth taking time on refining SVR. We apply 10 random validation sets on the SVR using epsilon = 0.4 with cost = 0.9, and the result was no better than the one using default values.
+
+
+##### ANN
+
+Disappointed by SVR, we turned our view to ANN.
+
+<!-- TODO -->
