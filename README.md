@@ -1,12 +1,5 @@
 # Milk Yield Prediction
 
-## Team Members
-
-- Name: 楊皓淯, Student ID: 107061210
-- Name: 林宗暐, Student ID: 106061210
-- Name: 蘇柏瑋, Student ID: 109061607
-- Name: Phone Myint Ko, Student ID: 110064893
-
 ## Abstract
 
 We attempt to predict milk production based on ID numbers that correspond to different cows under certain conditions. We will perform preliminary processing of the data using several data modeling (DM) methods. Afterward, we introduce three models to address this problem, which are Artificial Neural Network (ANN), Support Vector Regression (SVR), and Random Forest (RF). To quantitatively evaluate the results, we introduce the root mean square error (RMSE) formula as an indicator, which is the same as that given by the subject provider. This project will consist of six main steps. They are data pre-processing, model training, Model validation and parameter tuning, testing and Performance analysis.
@@ -206,7 +199,7 @@ The result of adding more features was less obvious but still agreed with the di
 
 With the correct features and encoding, we first tried out different kernels. The results were far from the default kernel (RBF). The default gamma also worked better. Then, we tried different epsilon and cost to control the number of support vectors and the hardness of the margin. After a quick check, we set the experiment range of epsilon and cost to be 0.1 ~ 1.9.
 
-![SVR RMSE](SVR.png)
+![Figure 4](figure4.png)
 
 The result suggested that it might not be worth taking time on refining SVR. We apply 10 random validation sets on the SVR using epsilon = 0.4 with cost = 0.9, and the result was no better than the one using default values.
 
@@ -231,9 +224,9 @@ For further improvement of the prediction results, preprocessing part of the pro
 
 ## Conclusion
 
-The current RMSE value is 6.07. In comparison with other teams, our RMSE value is relatively higher. The reason could be explained twofold. First, because of the limited time, we are not able to finish the appending features such as health-related or symptom-related features. Second, the model we used is not fined tuned.
+In comparison with other teams, our RMSE value is relatively high. We believe that if we can finish the work on appending more features such as health-related or symptom-related features, the result would be better. Moreover, we did not systematically refine the RF model, which ironically gave us the best result in the end. We do have the confidence to get just below 6 if we refine the RF model. Therefore, we prepared a relatively simple code for others to build on.
 
-
+We are also surprised by the fact that serial numbers ranked by birthday do not contribute to the result. This might suggest that cows are not getting better, and it should be a major concern for ranchers.
 
 ## Reference
 
