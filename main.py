@@ -4,6 +4,8 @@ import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
+from sklearn.svm import SVR, NuSVC
+from sklearn.ensemble import RandomForestRegressor
 from sklearn.neural_network import MLPRegressor
 from sklearn.metrics import mean_squared_error
 
@@ -37,7 +39,7 @@ def main():
         # 'firstSemen', 'lastSemen',
         'delivery', 'lactation', 'age',
         'breeding',
-        # 'deliverySeason',
+        'deliverySeason',
         # 'intervalA', 'intervalB', 'intervalC', 'intervalD', 'intervalE',
         # 'mean', 'std',
         'volume'
@@ -50,19 +52,22 @@ def main():
     features_scaler = MinMaxScaler()
 
     # ==================== Select Model Here ======================= #
-    regr = MLPRegressor(
-        hidden_layer_sizes=(150,100,50),
-        max_iter = 300,
-        activation = 'relu',
-        solver = 'adam'
+    regr = RandomForestRegressor(
+        n_estimators=1000,
+        criterion='squared_error',
+        max_features='sqrt',
+        # random_state=1,
+        n_jobs=-1
     )
 
     test  = report.loc[report['volume'].isnull()]
     train = data.loc[data['volume'].notnull()]
     logging.info(f' Number of test data: {test.shape[0]}')
 
-    for _ in range(10):
-        check_model(train, features_scaler, regr, time_valid=False)
+    rmse = np.empty(10)
+    for i in range(len(rmse)):
+        rmse[i] = check_model(train, features_scaler, regr, time_valid=False)
+    print(f'RMSE = {rmse.mean():2.3f}, max = {rmse.max():2.3f}')
 
     yp = predict_test(data, features_scaler, regr)
     write_answer(yp)
@@ -90,8 +95,7 @@ def check_model(train: pd.DataFrame, features_scaler, regr, time_valid=True):
     
     regr.fit(x, y)
     yp = regr.predict(xv)
-    print('RMSE =', np.sqrt(mean_squared_error(yv, yp)))
-    return
+    return np.sqrt(mean_squared_error(yv, yp))
 
 
 def predict_test(report: pd.DataFrame, features_scaler, regr) -> np.ndarray:
@@ -130,6 +134,7 @@ def merge_answer():
                 yp[i] = y2[idx2[0][0]]
         else:
             yp[i] = y1[idx1[0][0]]
+    np.save('answer.npy', yp)
     return yp
 
 
